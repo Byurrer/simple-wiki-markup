@@ -4,10 +4,11 @@
  * PHP Version 7.1
  * 
  * @author Buturlin Vitaliy (Byurrer), email: byurrer@mail.ru
- * @copyright 2019 Buturlin Vitaliy
+ * @copyright 2019-2020 Buturlin Vitaliy
  * @license MIT https://opensource.org/licenses/mit-license.php
  */
 
+ //#########################################################################
 
 class swm
 {
@@ -26,7 +27,7 @@ class swm
 
 	//************************************************************************
 
-	//! класс для div блока оглаления
+	//! класс для div блока оглавления
 	protected static $m_sListHeader = "list_headers";
 	
 	//########################################################################
@@ -39,8 +40,8 @@ class swm
 		$sString = self::header($sString);
 		$sString = self::lists($sString);
 		$sString = self::link($sString);
-		$sString = self::paragraph($sString);
 		$sString = self::bb($sString);
+		$sString = self::paragraph($sString);
 		$sString = self::special($sString);
 		$sString = str_replace("\с", "\n", $sString);
 		return $sString;
@@ -63,18 +64,24 @@ class swm
 	//! замена [code lang="язык"]код[/code] на <pre class='brush: "язык"'>код</pre>
 	public static function code($sString)
 	{
+		/*
+		//header("Content-type: text/plain; charset=utf-8");
+		// можно так сделать, но тогда возникает проблема c html элементами
+		$s = '/\[code\s*lang=\"(.+?)\"\](.*?)\[\/code\]/ims';
+		$d = "<pre class='brush: \"$1\"'>$2</pre>";
+		$sString = preg_replace($s, $d, $sString);
+		//exit($sString);
+		return $sString;
+		*/
+
 		$sFullEndBB = "[/code]";
 		$iLastPos = 0;
 		
 		while($iLastPos < strlen($sString) && preg_match("/\[code\s*lang=\"(.+?)\"\]/is", $sString, $aMatches, PREG_OFFSET_CAPTURE))
 		{
-			//preg_match("/\[code\s*lang=\"(.+?)\"\]/i", $sString, $aMatches, PREG_OFFSET_CAPTURE);
 			$sFullStartBB = "[".$aMatches[0][0]."]";
 			$sClass = $aMatches[1][0];
 			$iLastPos = $aMatches[0][1];
-			//header('Content-Type:text/plain');
-			/*print_r($aMatches);
-			exit(substr($sString, $iLastPos));*/
 
 			$iLastPos2 = 0;
 			if(($iLastPos2 = stripos($sString, $sFullEndBB, $iLastPos)) !== false)
@@ -82,12 +89,10 @@ class swm
 				$sStrCode = substr($sString, $iLastPos+strlen($sFullStartBB)-2, $iLastPos2 - ($iLastPos+strlen($sFullStartBB)-2));
 				$sStrCode = htmlspecialchars($sStrCode);
 				$sStrCode = str_replace("\n", "\с", $sStrCode);
-				//exit("###".$sStrCode."###");
+				
 				$sString = substr($sString, 0, $iLastPos) . "<pre class='brush: ".$sClass."'>" . $sStrCode . "</pre>" . substr($sString, $iLastPos2 + strlen($sFullEndBB));
 				$iLastPos = $iLastPos + strlen($sStrCode);
 			}
-
-			//exit($sString);
 		}
 		
 		return $sString;
@@ -108,7 +113,7 @@ class swm
 	//************************************************************************
 
 	/*! замена ==текст== на <h2>текст</h2>, === на h3 и т.д. 
-		если количество заголовков Ю 2 тогда будет генерироваться блок содержания 
+		если количество заголовков >2 тогда будет генерироваться блок содержания 
 		(div с классом указанным в m_sListHeader, элементы содержания в списке (ul, li))
 	*/
 	public static function header($sString)
@@ -171,10 +176,9 @@ class swm
 				$sList .= "<li><a href='#{$aHeaders[$i][1]}'>";
 				
 				for($k=0, $kl=$iCountMarksCurr-1; $k<$kl; ++$k)
-						$sList .= $aNumeric[$k] . ".";
+					$sList .= $aNumeric[$k] . ".";
 					
 				$sList .= " {$aHeaders[$i][1]}</a></li>";
-				
 				
 				//echo "<pre>" . print_r($aNumeric, true) . "</pre>";
 				
@@ -221,14 +225,14 @@ class swm
 		{
 			$aMatches = array();
 			
-			$sSym = self::$m_aMarkers4Lists[0][1];
-			$sReg = "/(\n{$sSym}+\s*)/is";
+			$sSym = self::$m_aMarkers4Lists[$i][1];
+			$sReg = "/(\n)$sSym+\s+/is";
 
 			// поочередно ищем каждое вхождение первого элемента списка
 			while(preg_match($sReg, $sString, $aMatches, PREG_OFFSET_CAPTURE))
 			{
-				$iStart = $aMatches[0][1] + strlen(PHP_EOL);
-				$sString = self::replaceLists($sString, $iStart, 0);
+				$iStart = $aMatches[0][1] + strlen("\n");
+				$sString = self::replaceLists($sString, $iStart, $i);
 			}
 		}
   	
@@ -240,28 +244,27 @@ class swm
   {
   	$iStart = $iPos;
   	$iFinish = $iStart;
-  	
-  	//exit($sString[$iFinish]);
+		
   	$sSym = self::$m_aMarkers4Lists[$iNumSym][1];
-  	$sReg = "/{$sSym}+\s+/";
+		$sReg = "/$sSym+\s+/is";
+		
   	//! поиск конечной позиции текущего списка
-  	while($iFinish < strlen($sString) && $sString[$iFinish] == self::$m_aMarkers4Lists[$iNumSym][0] && preg_match($sReg, substr($sString, $iFinish)) === 1)
+  	do
   	{
-  		$iFinish = stripos($sString, PHP_EOL, $iFinish);
-  		$iFinish += strlen(PHP_EOL);
-  		/*if()
-  			break;*/
-  	}
-  	
-  	//echo $iStart . "|" . $iFinish;
-  	
+			$iFinish = stripos($sString, "\n", $iFinish);
+			$iFinish += strlen("\n");
+		}
+		while(
+			$iFinish < strlen($sString) && 
+			$sString[$iFinish] == self::$m_aMarkers4Lists[$iNumSym][0] && 
+			preg_match($sReg, substr($sString, $iFinish), $aMatches)
+		);
   	
   	//вырезка списка из текста
   	$sTextList = substr($sString, $iStart, $iFinish - $iStart);
-  	//exit($sTextList);
   	
   	//деление текста на строки
-  	$aNLlist = explode(PHP_EOL, $sTextList);
+		$aNLlist = explode("\n", $sTextList);
   	
   	//генерация разметки, в том числе и для вложенных списков
   	//{
@@ -294,12 +297,13 @@ class swm
   		
   		//в любом случае вставляем элемент списка
   		$sSym = self::$m_aMarkers4Lists[$iNumSym][1];
-  		$sList .= "<li>" . (preg_replace("/^{$sSym}+(\s)+/", "", $aNLlist[$i])) . "</li>";
+  		$sList .= "<li>" . (preg_replace("/^$sSym+(\s)+/", "", $aNLlist[$i])) . "</li>";
   		
-  		$iCountMarksPrev = $iCountMarksCurr;
+			$iCountMarksPrev = $iCountMarksCurr;
   	}
-  	
-  	$sList .= self::$m_aMarkers4Lists[$iNumSym][3];
+		
+		for($i=0, $il=$iCountMarksPrev; $i<$il; ++$i)
+  		$sList .= self::$m_aMarkers4Lists[$iNumSym][3];
   	//}
   	
   	$sString = substr_replace($sString, $sList, $iStart, $iFinish - $iStart);
@@ -369,6 +373,7 @@ class swm
 			"/\"\"(.*)\"\"/isU",
 			"/\'\'(.*)\'\'/isU",
 			"/##(.*)##/isU",
+			"/(\-\-\-\-)/isU"
 		];
 
 		$aHTMLcode = [
@@ -376,6 +381,7 @@ class swm
 			"<sup>$1</sup>",
 			"<sub>$1</sub>",
 			"<b>$1</b>",
+			"<hr/>"
 		];
 
 		return preg_replace($aSourceCode, $aHTMLcode, $sString);
