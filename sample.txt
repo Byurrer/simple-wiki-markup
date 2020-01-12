@@ -1,5 +1,9 @@
-
+﻿
 ----
+
+==Todo==
+Some text {qwer_asdf_zxcv1|first point todo_list}
+Some text 2 {qwer_asdf_zxcv2|second point todo_list}
 
 ==Text for wrap to P tag==
 
@@ -23,7 +27,9 @@ Text for wrap to P tag
 
 ==Links==
 
-My site https://byurrer.ru/
+[https://byurrer.ru/1 My blog]
+
+[https://byurrer.ru/2]
 
 ==Code==
 
@@ -35,11 +41,8 @@ print("hello world!);
 
 ##Bold text##
 
-""sup""
-''sub''
+''Italic text''
 
-[i]italic[/i]
-
-[u]underline[/u]
+""Underline text""
 
 [d]delete[/d]

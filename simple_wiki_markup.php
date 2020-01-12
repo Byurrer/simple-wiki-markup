@@ -29,6 +29,11 @@ class swm
 
 	//! класс для div блока оглавления
 	protected static $m_sListHeader = "list_headers";
+
+	//************************************************************************
+
+	//! класс для div блока todo
+	protected static $m_sListTodo = "list_todo";
 	
 	//########################################################################
 
@@ -42,6 +47,7 @@ class swm
 		$sString = self::link($sString);
 		$sString = self::bb($sString);
 		$sString = self::paragraph($sString);
+		$sString = self::todo($sString);
 		$sString = self::special($sString);
 		$sString = str_replace("\с", "\n", $sString);
 		return $sString;
@@ -52,11 +58,52 @@ class swm
 	//! замена текста ссылок на теги
 	public static function link($sString)
 	{
-	  $s = '/(https?\:\/\/(?:.[^\s]*))/ims';
+		$s = '/\[(https?\:\/\/(?:.[^\s\]]*))\s+(.*?)\]/ims';
+		$d = '<a href="$1" target="_blank">$2</a>';
+		$sString = preg_replace($s, $d, $sString);
+
+		$s = '/\[(https?\:\/\/(?:.[^\s\]]*))\]/ims';
 		$d = '<a href="$1" target="_blank">$1</a>';
 		$sString = preg_replace($s, $d, $sString);
 
+	  /*$s = '/(https?\:\/\/(?:.[^\s]*))/ims';
+		$d = '<a href="$1" target="_blank">$1</a>';
+		$sString = preg_replace($s, $d, $sString);*/
+
 		return $sString;
+	}
+
+	//************************************************************************
+
+	/*! генерация todo листа
+	 {(.*?)|(.*?)} где в первой скобке название анкора, во второй текст todo
+	 В конец текста будет добавлен блок со списком 
+	 (div с классом указанным в m_sListTodo, элементы содержания в списке (ol, li))
+	*/
+	public static function todo($sString)
+	{
+		$aData = [];
+
+		$sString = preg_replace_callback(
+			"/\{(.*?)\|(.*?)\}/ims", 
+			function($aMatches) use(&$aData)
+			{
+				$aData[$aMatches[1]] = $aMatches[2];
+				return "<sup><a name='".$aMatches[1]."_def'><a href='#".$aMatches[1]."_list'>["."<b>".count($aData)."</b>. ".$aMatches[2]."]</a></a></sup>";
+			}, 
+			$sString
+		);
+
+		$sTodo = "";
+		if(count($aData) > 0)
+		{
+			foreach($aData as $key => $value)
+				$sTodo .= "<li><a name='".$key."_list'><a href='#".$key."_def'>$value</a></a></li>";
+			$sTodo = "<div class='".self::$m_sListTodo."'><ol>$sTodo</ol></div>";
+		}
+
+		//print_r($aData);
+		return $sString.$sTodo;
 	}
 
 	//************************************************************************
@@ -370,17 +417,17 @@ class swm
 	{
 		$aSourceCode = [
 			"/\(\((.*)\)\)/isU",
-			"/\"\"(.*)\"\"/isU",
-			"/\'\'(.*)\'\'/isU",
 			"/##(.*)##/isU",
+			"/\'\'(.*)\'\'/isU",
+			"/\"\"(.*)\"\"/isU",
 			"/(\-\-\-\-)/isU"
 		];
 
 		$aHTMLcode = [
 			"<small>$1</small>",
-			"<sup>$1</sup>",
-			"<sub>$1</sub>",
 			"<b>$1</b>",
+			"<i>$1</i>",
+			"<u>$1</u>",
 			"<hr/>"
 		];
 
