@@ -58,11 +58,11 @@ class swm
 	//! замена текста ссылок на теги
 	public static function link($sString)
 	{
-		$s = '/\[(https?\:\/\/(?:.[^\s\]]*))\s+(.*?)\]/ims';
+		$s = '/\[\[(https?\:\/\/(?:.[^\s\]]*))\s+(.*?)\]\]/ims';
 		$d = '<a href="$1" target="_blank">$2</a>';
 		$sString = preg_replace($s, $d, $sString);
 
-		$s = '/\[(https?\:\/\/(?:.[^\s\]]*))\]/ims';
+		$s = '/\[\[(https?\:\/\/(?:.[^\s\]]*))\]\]/ims';
 		$d = '<a href="$1" target="_blank">$1</a>';
 		$sString = preg_replace($s, $d, $sString);
 
@@ -85,7 +85,7 @@ class swm
 		$aData = [];
 
 		$sString = preg_replace_callback(
-			"/\{(.*?)\|(.*?)\}/ims", 
+			"/\{\{(.*?)\|(.*?)\}\}/ims", 
 			function($aMatches) use(&$aData)
 			{
 				$aData[$aMatches[1]] = $aMatches[2];
