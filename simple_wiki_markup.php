@@ -34,6 +34,17 @@ class swm
 
 	//! класс для div блока todo
 	protected static $m_sListTodo = "list_todo";
+
+	//************************************************************************
+
+	//! класс для div блока с изображением
+	protected static $m_sImgWrap = "thumb";
+
+	//! класс для внутреннго div блока с изображением
+	protected static $m_sImgInner = "thumbinner";
+
+	//! класс для div блока описания
+	protected static $m_sImgCaption = "thumbcaption";
 	
 	//########################################################################
 
@@ -43,6 +54,7 @@ class swm
 		$sString = str_replace("\r\n", "\n", $sString);
 		$sString = self::code($sString);
 		$sString = self::header($sString);
+		$sString = self::img($sString);
 		$sString = self::lists($sString);
 		$sString = self::link($sString);
 		$sString = self::bb($sString);
@@ -55,7 +67,9 @@ class swm
 
 	//########################################################################
 	
-	//! замена текста ссылок на теги
+	/*! замена текста ссылок на теги
+		[[link text]] или [[link]]
+	*/
 	public static function link($sString)
 	{
 		$s = '/\[\[(https?\:\/\/(?:.[^\s\]]*))\s+(.*?)\]\]/ims';
@@ -70,6 +84,87 @@ class swm
 		$d = '<a href="$1" target="_blank">$1</a>';
 		$sString = preg_replace($s, $d, $sString);*/
 
+		return $sString;
+	}
+
+	//************************************************************************
+
+	/*! замена img на изображение
+		[[img:link|size|align|caption]] где:
+			link - ссылка на изображение, полный адрес либо относительно текущего сайта
+			size - (опционально) размер, допустимы префиксы (w ширина, h высота), без префиксов применяется к ширине, постфиксом обязательно px
+			align - (опционально) выравнивание, допустимы значения left, center, right
+			caption - (опционально) текст подписи
+		Если один из параметров после link не указан, значит параметры ниже сдвигаются вверх. Обязателен хотя бы один параметр после link
+	*/
+	public static function img($sString)
+	{
+		$sString = preg_replace_callback(
+			"/\[\[img\:(.*?)\]\]/ims", 
+			function($aMatches)
+			{
+				$aMatches = explode("|", $aMatches[1]);
+				$sLink = trim($aMatches[0]);
+				if(/*stripos($sLink, "http") !== 0*/ $sLink[0] == '/')
+				{
+					$sLink = ($_SERVER["HTTPS"]?"https":"http")."://".$_SERVER["HTTP_HOST"].$sLink;
+				}
+				$sWidth = " ";
+				$sHeight = " ";
+				$sAlign = "";
+				$sCaption = null;
+
+				$aSize = getimagesize($sLink);
+
+				if(count($aMatches) > 1)
+				{
+					if(preg_match("/(w|h)?(\d+px)/ims", $aMatches[1], $aMatches2))
+					{
+						if(count($aMatches2) == 3)
+						{
+							if($aMatches2[1] == 'h')
+							{
+								$sHeight = $aMatches2[2];
+								$sWidth = intval($aSize[0] * ($sHeight / $aSize[1]))."px";
+							}
+							else
+							{
+								$sWidth = $aMatches2[2];
+								$sHeight = intval($aSize[1] * ($sWidth / $aSize[0]))."px";
+							}
+						}
+						else
+							$sWidth = $aMatches2[1];
+					}
+					else if(strcasecmp($aMatches[1], "left") == 0 || strcasecmp($aMatches[1], "center") == 0 || strcasecmp($aMatches[1], "right") == 0)
+						$sAlign = $aMatches[1];
+					else
+						$sCaption = $aMatches[1];
+				}
+
+				if(count($aMatches) > 2)
+				{
+					if(strcasecmp($aMatches[2], "left") == 0 || strcasecmp($aMatches[2], "center") == 0 || strcasecmp($aMatches[2], "right") == 0)
+						$sAlign = $aMatches[2];
+					else
+						$sCaption = $aMatches[2];
+				}
+
+				if(count($aMatches) > 3)
+					$sCaption = $aMatches[3];
+
+				$sHtml = "";
+				$sImg = "<img src='$sLink' width='$sWidth' height='$sHeight' />";
+
+				if($sCaption)
+					$sHtml = "<div class='".self::$m_sImgWrap." $sAlign'><div class='".self::$m_sImgInner."' style='width: $sWidth'>$sImg<div class='".self::$m_sImgCaption."'>$sCaption</div></div></div>";
+				else
+					$sHtml = $sImg;
+
+				return $sHtml;
+			}, 
+			$sString
+		);
 		return $sString;
 	}
 
@@ -416,6 +511,7 @@ class swm
 	public static function special($sString) 
 	{
 		$aSourceCode = [
+			"/\(\(\((.*)\)\)\)/isU",
 			"/\(\((.*)\)\)/isU",
 			"/##(.*)##/isU",
 			"/\'\'(.*)\'\'/isU",
@@ -424,6 +520,7 @@ class swm
 		];
 
 		$aHTMLcode = [
+			"<small>($1)</small>",
 			"<small>$1</small>",
 			"<b>$1</b>",
 			"<i>$1</i>",
