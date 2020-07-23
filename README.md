@@ -55,7 +55,7 @@ b, i, u, d, left, center, right, sub, sup, big, small
 ---- преобразуется в &lt;hr/&gt;
 
 ## Использование
-	require_once('simple_wiki_markup.php');
+	require_once('simple-wiki-markup.php');
 	$sSampleText = file_get_contents("sample.txt");
 	$html = swm::markup($sSampleText);
 	echo $html;
